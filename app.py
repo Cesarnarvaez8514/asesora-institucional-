@@ -359,6 +359,6 @@ if __name__ == '__main__':
         print("  🛏️  CRM Litoral — Espumados del Litoral")
         print("  👤  Usuario: candida_litoral")
         print("  🔑  Contraseña: Litoral2026")
-        print("  🚀  http://localhost:5000")
         print("=" * 50)
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
