@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Litoral CRM — Iniciar Sesión</title>
+    <link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        :root { --o: #F05A1A; --o2: #FF7A3D; --o3: #C04010; --ok: #22C55E; --info: #3B82F6; }
+        [data-theme="dark"] { --bg: #0D0F14; --bg2: #13161D; --card: #1E2330; --border: rgba(240,90,26,0.2); --border2: rgba(255,255,255,0.06); --text: #F0F2F8; --text2: #A0A8C0; }
+        [data-theme="light"] { --bg: #F5F3F0; --bg2: #fff; --card: #fff; --border: rgba(240,90,26,0.25); --border2: rgba(0,0,0,0.08); --text: #1A1208; --text2: #5A4A38; }
+        
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background: var(--bg); color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+
+        /* FONDO */
+        .bg-glow { position: fixed; inset: 0; z-index: 0; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(240,90,26,0.12) 0%, transparent 60%); }
+        .bg-grid { position: fixed; inset: 0; z-index: 0; opacity: 0.03; background-image: linear-gradient(var(--text) 1px, transparent 1px), linear-gradient(90deg, var(--text) 1px, transparent 1px); background-size: 48px 48px; }
+
+        /* CARD */
+        .login-wrap { position: relative; z-index: 1; width: 100%; max-width: 420px; padding: 20px; }
+        .login-card { background: var(--card); border: 1px solid var(--border); border-radius: 28px; padding: 40px 36px; box-shadow: 0 24px 64px rgba(0,0,0,0.35); backdrop-filter: blur(12px); }
+
+        /* INPUTS E ICONOS CON COLOR */
+        .field { margin-bottom: 16px; }
+        .field label { display: block; font-size: 11px; font-weight: 700; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; }
+        .field-wrap { position: relative; }
+        
+        .field-icon { 
+            position: absolute; left: 14px; top: 50%; transform: translateY(-50%); 
+            width: 18px; height: 18px; 
+            color: var(--o); /* Icono Naranja Institucional */
+            filter: drop-shadow(0 0 5px rgba(240, 90, 26, 0.3));
+            transition: 0.3s; 
+        }
+        
+        .field input { width: 100%; padding: 12px 14px 12px 42px; background: var(--bg2); border: 1px solid var(--border2); border-radius: 12px; color: var(--text); outline: none; transition: 0.2s; }
+        .field input:focus { border-color: var(--o); box-shadow: 0 0 0 3px rgba(240,90,26,0.12); }
+        .field-wrap:focus-within .field-icon { color: var(--o2); transform: translateY(-50%) scale(1.1); }
+
+        /* BOTÓN PREMIUM ELEGANTE */
+        .btn-login { 
+            width: 100%; padding: 16px; border-radius: 14px; 
+            background: #0D0F14; border: 1px solid var(--o); 
+            color: #fff; font-family: 'Clash Display', sans-serif; font-size: 15px; font-weight: 600; 
+            text-transform: uppercase; letter-spacing: 1px; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        .btn-login:hover { background: var(--o); box-shadow: 0 0 20px rgba(240, 90, 26, 0.4); transform: translateY(-2px); }
+        .btn-icon { width: 18px; height: 18px; color: var(--o); transition: 0.3s; }
+        .btn-login:hover .btn-icon { color: #fff; }
+
+        .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+        .btn-login.loading .spinner { display: block; }
+        .btn-login.loading .btn-txt, .btn-login.loading .btn-icon { display: none; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+
+        .theme-toggle { position: fixed; top: 20px; right: 20px; width: 40px; height: 40px; border-radius: 12px; background: var(--card); border: 1px solid var(--border2); cursor: pointer; color: var(--text2); }
+    </style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="bg-grid"></div>
+
+<button class="theme-toggle" onclick="toggleTheme()" id="th-btn">🌙</button>
+
+<div class="login-wrap">
+    <div class="login-card">
+        
+        <div class="brand-section" style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 30px;">
+            <div class="logo-container" style="width: 55px; height: 55px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid var(--o); flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                <img src="{{ url_for('static', filename='img/espumado.jpg') }}" alt="Logo" style="width: 85%; height: auto; object-fit: contain;">
+            </div>
+            <div class="brand-text" style="display: flex; flex-direction: column; text-align: left;">
+                <span class="brand-title" style="font-size: 19px; font-weight: 800; color: var(--text); line-height: 1.1; font-family: 'Clash Display';">Litoral Smart</span>
+                <span class="brand-subtitle" style="font-size: 10px; color: var(--o); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">CRM Institucional</span>
+            </div>
+        </div>
+
+        <form method="POST" action="/login" id="login-form">
+            <div class="field">
+                <label>Usuario</label>
+                <div class="field-wrap">
+                    <i data-lucide="user" class="field-icon"></i>
+                    <input type="text" name="username" placeholder="candida_litoral" required>
+                </div>
+            </div>
+            <div class="field">
+                <label>Contraseña</label>
+                <div class="field-wrap">
+                    <i data-lucide="lock" class="field-icon"></i>
+                    <input type="password" name="password" placeholder="••••••••••" required>
+                </div>
+            </div>
+            <button type="submit" class="btn-login" id="btn-login">
+                <i data-lucide="rocket" class="btn-icon"></i>
+                <span class="btn-txt">Ingresar al CRM</span>
+                <div class="spinner"></div>
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+    let dark = true;
+    function toggleTheme() {
+        dark = !dark;
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        document.getElementById('th-btn').textContent = dark ? '🌙' : '☀️';
+        lucide.createIcons();
+    }
+    document.getElementById('login-form').addEventListener('submit', function() {
+        document.getElementById('btn-login').classList.add('loading');
+    });
+</script>
+</body>
+</html>
