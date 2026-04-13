@@ -1,30 +1,123 @@
 <!DOCTYPE html>
 <html lang="es" data-theme="dark">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Litoral Smart CRM</title>
-<link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Litoral Smart CRM</title>
+  <link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  <style>
+    /* ── Calculadora espumas ── */
+    .calc-dims { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-bottom:12px; }
+    .calc-resultado {
+      background:rgba(240,90,26,.06); border:1px solid rgba(240,90,26,.2);
+      border-radius:12px; padding:14px; margin-top:4px;
+    }
+    .calc-res-row { display:flex; justify-content:space-between; font-size:13px; padding:4px 0; }
+    .calc-res-total strong { color:var(--o); font-size:16px; }
+    .calc-res-divider { height:1px; background:var(--border2); margin:8px 0; }
+
+    .btn-tipo-espuma {
+      flex:1; padding:8px 0; border-radius:9px; border:1px solid var(--border2);
+      background:var(--card2); color:var(--text2); font-family:'Plus Jakarta Sans',sans-serif;
+      font-size:12px; font-weight:600; cursor:pointer; transition:all .2s;
+    }
+    .btn-tipo-espuma.active {
+      background:var(--o); border-color:var(--o); color:#fff;
+    }
+
+    .densidad-row {
+      display:flex; align-items:center; gap:10px;
+      padding:9px 0; border-bottom:1px solid var(--border2);
+    }
+    .densidad-badge {
+      min-width:42px; text-align:center; padding:3px 8px;
+      border-radius:7px; font-size:11px; font-weight:700;
+      background:rgba(240,90,26,.12); color:var(--o);
+    }
+    .densidad-row input[type="number"] {
+      width:110px; background:var(--card2); border:1px solid var(--border2);
+      border-radius:8px; padding:6px 10px; color:var(--text);
+      font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; outline:none;
+    }
+    .densidad-row input[type="number"]:focus { border-color:var(--o); }
+
+    .ed-badge {
+      display:inline-flex; align-items:center; justify-content:center;
+      width:38px; height:28px; border-radius:7px; font-size:10px; font-weight:800;
+      background:rgba(240,90,26,.18); color:var(--o); border:1px solid rgba(240,90,26,.3);
+    }
+    .espumas-preview-grid { display:flex; flex-wrap:wrap; gap:5px; justify-content:center; align-items:center; padding:18px; }
+    .pc-img-esponj { background:linear-gradient(135deg,#1a0a02,#2d1206); }
+    .colores-chips { display:flex; flex-wrap:wrap; gap:6px; }
+    .color-chip {
+      padding:4px 10px; border-radius:20px; font-size:11px; font-weight:600;
+      background:var(--card2); border:1px solid var(--border2); color:var(--text2);
+    }
+
+    /* ── Ruta del día ── */
+    .ruta-info-bar {
+      display:flex; justify-content:space-between; align-items:center;
+      background:var(--card); border:1px solid var(--border2); border-radius:10px;
+      padding:10px 14px; margin-bottom:14px; font-size:12px; font-weight:600; color:var(--text2);
+    }
+    .g2-ruta { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    @media(max-width:700px){ .g2-ruta { grid-template-columns:1fr; } }
+    .section-label { font-size:11px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:.07em; margin-bottom:8px; }
+    .ruta-empty { text-align:center; padding:28px 16px; color:var(--text3); font-size:12px; background:var(--card); border:1px dashed var(--border2); border-radius:12px; }
+    .ruta-item {
+      display:flex; align-items:center; gap:12px;
+      background:var(--card); border:1px solid var(--border2);
+      border-radius:12px; padding:12px 14px; margin-bottom:8px;
+      transition:all .2s;
+    }
+    .ruta-item:hover { border-color:var(--o); }
+    .ruta-num {
+      width:28px; height:28px; border-radius:50%; flex-shrink:0;
+      background:linear-gradient(135deg,var(--o),var(--o2));
+      display:flex; align-items:center; justify-content:center;
+      font-size:11px; font-weight:800; color:#fff;
+    }
+    .ruta-resumen-card { background:var(--card); border:1px solid var(--border2); border-radius:14px; padding:16px; }
+
+    /* ── Pipeline gráficas ── */
+    .pipeline-charts { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-bottom:20px; }
+    @media(max-width:700px){ .pipeline-charts { grid-template-columns:1fr; } }
+    .chart-card { background:var(--card); border:1px solid var(--border2); border-radius:14px; padding:18px; }
+    .chart-title { font-family:'Clash Display',sans-serif; font-size:14px; font-weight:600; margin-bottom:14px; }
+    .badge-o { background:rgba(240,90,26,.12); color:var(--o); border:1px solid rgba(240,90,26,.25); padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+
+    /* ── Prog bars dashboard ── */
+    .meta-row { display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px; }
+    .meta-pct { font-weight:700; }
+
+    /* ── Filtro portafolio activo ── */
+    .filter-active { background:var(--o) !important; color:#fff !important; border-color:var(--o) !important; }
+  </style>
 </head>
 <body>
 
 <div class="sb-overlay" id="sb-overlay" onclick="cerrarSB()"></div>
 
-<!-- SIDEBAR -->
+<!-- ================================================================
+     SIDEBAR
+     ================================================================ -->
 <aside id="sidebar">
   <div class="brand-section">
-    <div class="logo-container">
-      <img src="/static/img/espumado.jpg" alt="Logo" class="logo-img"
-           onerror="this.style.display='none'">
-    </div>
+    <img src="/static/img/espumado.jpg" alt="Logo" class="logo-img"
+         onerror="this.src='https://ui-avatars.com/api/?name=LS&background=F05A1A&color=fff'">
     <div class="brand-text">
       <span class="brand-title">Litoral Smart</span>
       <span class="brand-subtitle">CRM Institucional</span>
     </div>
-    <button class="close-sb" onclick="cerrarSB()"><span class="material-icons">chevron_left</span></button>
+    <button class="close-sb" onclick="cerrarSB()">
+      <span class="material-icons">chevron_left</span>
+    </button>
   </div>
 
   <div class="sb-user">
@@ -41,10 +134,6 @@
     <li class="nav-item active" onclick="irA('dashboard',this)">
       <span class="material-icons">dashboard</span> Dashboard
     </li>
-    <li class="nav-item" onclick="irA('rutas',this)">
-      <span class="material-icons">route</span> Rutas del Día
-      <span class="nav-ruta-badge" id="ruta-badge">0</span>
-    </li>
     <li class="nav-item" onclick="irA('clientes',this)">
       <span class="material-icons">groups</span> Clientes
     </li>
@@ -58,11 +147,15 @@
     <li class="nav-item" onclick="irA('calculadora',this)">
       <span class="material-icons">calculate</span> Calculadora Espumas
     </li>
-    <li class="nav-item" onclick="irA('bitacora',this)">
-      <span class="material-icons">menu_book</span> Bitácora
-    </li>
     <li class="nav-item" onclick="irA('mapa',this)">
       <span class="material-icons">map</span> Mapa &amp; Visitas
+    </li>
+    <li class="nav-item" onclick="irA('rutas',this)">
+      <span class="material-icons">alt_route</span> Ruta del Día
+      <span class="nav-ruta-badge" id="ruta-badge" style="margin-left:auto;background:var(--o);color:#fff;border-radius:20px;font-size:9px;font-weight:700;padding:2px 7px">0</span>
+    </li>
+    <li class="nav-item" onclick="irA('bitacora',this)">
+      <span class="material-icons">menu_book</span> Bitácora
     </li>
     <li class="nav-item" onclick="irA('seguimiento',this)">
       <span class="material-icons">notifications_active</span> Seguimientos
@@ -77,31 +170,37 @@
   </ul>
 
   <div class="sb-bottom">
-    <button class="btn bp" style="width:100%;justify-content:center" onclick="abrirModal('m-visita')">
-      <span class="material-icons" style="font-size:16px">add_location</span> Nueva Visita
+    <button class="btn bp btn-full" onclick="abrirModal('m-visita')">
+      <span class="material-icons">add_location</span> Nueva Visita
     </button>
     <div class="sb-version">Espumados del Litoral · v3.0 · 2026</div>
   </div>
 </aside>
 
-<!-- MAIN -->
+<!-- ================================================================
+     MAIN CONTENT
+     ================================================================ -->
 <div class="main-content">
+
+  <!-- TOPBAR -->
   <div class="topbar">
     <div class="tb-left">
       <button class="menu-toggle icon-btn" onclick="abrirSB()">
         <span class="material-icons">menu</span>
       </button>
-      <div class="page-title" id="pg-title">📊 <span>Dashboard</span></div>
+      <div class="page-title" id="pg-title"><span>Dashboard</span></div>
     </div>
     <div class="tb-right">
       <span class="tb-date" id="top-date"></span>
       <div class="notif-wrap">
         <button class="icon-btn" onclick="irA('seguimiento')">
-          <span class="material-icons" style="font-size:18px">notifications</span>
+          <span class="material-icons">notifications</span>
           <div class="notif-dot"></div>
         </button>
       </div>
-      <button class="icon-btn" onclick="toggleTheme()" id="th-btn">🌙</button>
+      <button class="icon-btn" onclick="toggleTheme()" id="th-btn">
+        <span class="material-icons">dark_mode</span>
+      </button>
       <div class="user-chip">
         <img src="{{ url_for('static', filename='img/perfil.jpg.jpeg') }}"
              onerror="this.src='https://ui-avatars.com/api/?name=Candida&background=F05A1A&color=fff&size=60'"
@@ -114,33 +213,48 @@
     </div>
   </div>
 
-  <!-- ===== DASHBOARD ===== -->
+  <!-- ==============================================================
+       DASHBOARD
+       ============================================================== -->
   <div class="page active" id="page-dashboard">
-    <div class="g4" style="margin-bottom:18px">
-      <div class="stat-card" style="--ac:rgba(240,90,26,.1)">
-        <div class="stat-top"><span class="stat-ico">👥</span><span class="stat-ch up">total</span></div>
+
+    <div class="g2 mb-18">
+      <div class="stat-card">
+        <div class="stat-icon-wrap" style="background:rgba(240,90,26,.12)">
+          <span class="material-icons" style="color:var(--o)">groups</span>
+        </div>
         <div class="stat-val">{{ stats.total_clientes }}</div>
-        <div class="stat-lbl">Clientes Registrados</div>
+        <div class="stat-lbl">Clientes</div>
+        <span class="stat-ch up">Registrados</span>
       </div>
-      <div class="stat-card" style="--ac:rgba(245,158,11,.1)">
-        <div class="stat-top"><span class="stat-ico">📋</span><span class="stat-ch up">activas</span></div>
+      <div class="stat-card">
+        <div class="stat-icon-wrap" style="background:rgba(245,158,11,.12)">
+          <span class="material-icons" style="color:var(--warn)">description</span>
+        </div>
         <div class="stat-val" style="color:var(--warn)">{{ stats.cotizaciones }}</div>
         <div class="stat-lbl">Cotizaciones</div>
+        <span class="stat-ch" style="background:rgba(245,158,11,.12);color:var(--warn)">Activas</span>
       </div>
-      <div class="stat-card" style="--ac:rgba(34,197,94,.1)">
-        <div class="stat-top"><span class="stat-ico">✅</span><span class="stat-ch up">mes</span></div>
+      <div class="stat-card">
+        <div class="stat-icon-wrap" style="background:rgba(34,197,94,.12)">
+          <span class="material-icons" style="color:var(--ok)">verified</span>
+        </div>
         <div class="stat-val" style="color:var(--ok)">{{ stats.cierres }}</div>
         <div class="stat-lbl">Cierres</div>
+        <span class="stat-ch up">Este mes</span>
       </div>
-      <div class="stat-card" style="--ac:rgba(59,130,246,.1)">
-        <div class="stat-top"><span class="stat-ico">⏰</span><span class="stat-ch dn">pendientes</span></div>
+      <div class="stat-card">
+        <div class="stat-icon-wrap" style="background:rgba(59,130,246,.12)">
+          <span class="material-icons" style="color:var(--info)">schedule</span>
+        </div>
         <div class="stat-val" style="color:var(--info)">{{ stats.seguimientos }}</div>
         <div class="stat-lbl">Seguimientos</div>
+        <span class="stat-ch dn">Pendientes</span>
       </div>
     </div>
 
     <!-- Resumen ruta del día -->
-    <div class="card ruta-resumen-card" style="margin-bottom:18px">
+    <div class="ruta-resumen-card mb-18">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <div class="card-title" style="margin-bottom:0">🗺️ Ruta de Hoy</div>
         <button class="btn bp bs" onclick="irA('rutas')">
@@ -154,18 +268,19 @@
       </div>
     </div>
 
-    <div class="g2" style="margin-bottom:18px">
+    <div class="g2 mb-18">
       <div class="card">
-        <div class="card-title">🎯 Meta Mensual</div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span>Contactados</span><b style="color:var(--o)">65%</b></div>
+        <div class="card-title">Meta Mensual</div>
+        <div class="meta-row"><span class="meta-label">Contactados</span><span class="meta-pct" style="color:var(--o)">65%</span></div>
         <div class="pb"><div class="pf po" style="width:65%"></div></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin:12px 0 5px"><span>Cotización → Cierre</span><b style="color:var(--ok)">50%</b></div>
+        <div class="meta-row" style="margin-top:12px"><span class="meta-label">Cotización a Cierre</span><span class="meta-pct" style="color:var(--ok)">50%</span></div>
         <div class="pb"><div class="pf pg" style="width:50%"></div></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin:12px 0 5px"><span>Seguimientos OK</span><b style="color:var(--info)">80%</b></div>
+        <div class="meta-row" style="margin-top:12px"><span class="meta-label">Seguimientos OK</span><span class="meta-pct" style="color:var(--info)">80%</span></div>
         <div class="pb"><div class="pf pbi" style="width:80%"></div></div>
       </div>
+
       <div class="form-visita">
-        <div class="card-title">📍 Registrar Visita Rápida</div>
+        <div class="card-title">Registrar Visita</div>
         <div class="ig">
           <label>Cliente / Empresa</label>
           <input class="inp" id="v-cliente" placeholder="Hotel, Clínica, Motel...">
@@ -202,102 +317,91 @@
       </div>
     </div>
 
-    <div class="sec-t">🗺️ Mapa de Cobertura</div>
+    <div class="sec-t">Mapa de Cobertura</div>
     <div class="card" style="padding:14px">
       <div id="mapa-litoral"></div>
     </div>
-  </div>
 
-  <!-- ===== RUTAS DEL DÍA ===== -->
-  <div class="page" id="page-rutas">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:18px">
-      <div class="sec-t" style="margin-bottom:0">🗺️ Rutas del Día</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn bg2 bs" onclick="optimizarRuta()">
-          <span class="material-icons" style="font-size:14px">alt_route</span> Optimizar
-        </button>
-        <button class="btn bp" onclick="abrirModal('m-add-ruta')">
-          <span class="material-icons" style="font-size:15px">add_location_alt</span> Agregar
-        </button>
-      </div>
-    </div>
+  </div><!-- /dashboard -->
 
-    <div class="ruta-info-bar">
-      <span id="ruta-contador">0 / 5 clientes en ruta</span>
-      <span id="ruta-estado-txt" style="color:var(--ok);font-size:11px"></span>
-    </div>
-
-    <div class="g2-ruta" style="margin-bottom:18px">
-      <div>
-        <div class="section-label">Clientes en Ruta</div>
-        <div id="lista-ruta">
-          <div class="ruta-empty">
-            <span class="material-icons" style="font-size:36px;color:var(--text3);display:block;margin-bottom:8px">route</span>
-            Agrega hasta 5 clientes para planificar tu ruta de hoy
-          </div>
-        </div>
-        <button class="btn bp" id="btn-abrir-maps" style="width:100%;justify-content:center;margin-top:12px;display:none" onclick="abrirEnGoogleMaps()">
-          <span class="material-icons" style="font-size:16px">open_in_new</span> Abrir Ruta en Google Maps
-        </button>
-      </div>
-      <div>
-        <div class="section-label">Mapa de Ruta</div>
-        <div class="card" style="padding:10px">
-          <div id="mapa-ruta" style="height:340px;border-radius:10px"></div>
-        </div>
-        <div style="margin-top:14px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-            <div class="section-label" style="margin-bottom:0">Negocios Cercanos (500m)</div>
-            <button class="btn bg2 bs" onclick="buscarCercanos()">
-              <span class="material-icons" style="font-size:13px">radar</span> Detectar
-            </button>
-          </div>
-          <div id="lista-cercanos">
-            <div style="font-size:12px;color:var(--text3);padding:8px 0">Activa la detección para ver negocios cercanos</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== CLIENTES ===== -->
+  <!-- ==============================================================
+       CLIENTES
+       ============================================================== -->
   <div class="page" id="page-clientes">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:18px">
-      <div class="sec-t" style="margin-bottom:0;flex:1">👥 Clientes Registrados</div>
-      <button class="btn bp" onclick="abrirModal('m-visita')">+ Nueva Visita</button>
+    <div class="page-header mb-18">
+      <div class="sec-t mb-0">Clientes Registrados</div>
+      <button class="btn bp" onclick="abrirModal('m-visita')">
+        <span class="material-icons" style="font-size:15px">add</span> Nueva Visita
+      </button>
     </div>
-    <div style="display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap">
-      <input class="inp" style="flex:1;min-width:160px" placeholder="🔍 Buscar cliente..." id="sq" oninput="filtrarTabla()">
-      <select class="inp" style="width:130px" id="sf-tipo" onchange="filtrarTabla()">
-        <option value="">Todos tipos</option>
-        <option>Hotel</option><option>Clínica</option><option>Motel</option>
-        <option>IPS</option><option>Oficina / Empresa</option>
+    <div class="filtros mb-14">
+      <input class="inp" placeholder="Buscar cliente..." id="sq" oninput="filtrarTabla()">
+      <select class="inp w-130" id="sf-tipo" onchange="filtrarTabla()">
+        <option value="">Todos los tipos</option>
+        <option>Hotel</option><option>Clínica</option><option>Motel</option><option>IPS</option><option>Oficina / Empresa</option>
       </select>
-      <select class="inp" style="width:130px" id="sf-est" onchange="filtrarTabla()">
-        <option value="">Todos estados</option>
+      <select class="inp w-130" id="sf-est" onchange="filtrarTabla()">
+        <option value="">Todos los estados</option>
         <option>Prospecto</option><option>Contactado</option><option>Interesado</option>
         <option>Cotización</option><option>Cliente</option>
       </select>
     </div>
     <div class="tw">
       <table>
-        <thead><tr><th>Cliente</th><th>Tipo</th><th>Producto</th><th>Estado</th><th>Fecha</th><th>Mapa</th><th>Acción</th></tr></thead>
-        <tbody id="tb-clientes"><tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text2)">Cargando...</td></tr></tbody>
+        <thead>
+          <tr><th>Cliente</th><th>Tipo</th><th>Producto</th><th>Estado</th><th>Fecha</th><th>Mapa</th><th>Acciones</th></tr>
+        </thead>
+        <tbody id="tb-clientes">
+          <tr><td colspan="7" class="td-loading">Cargando...</td></tr>
+        </tbody>
       </table>
     </div>
   </div>
 
-  <!-- ===== PIPELINE ===== -->
+  <!-- ==============================================================
+       PIPELINE  — con gráficas Chart.js
+       ============================================================== -->
   <div class="page" id="page-pipeline">
-    <div class="sec-t">📈 Pipeline de Ventas</div>
+    <div class="sec-t">Pipeline de Ventas</div>
+
+    <!-- Gráficas -->
+    <div class="pipeline-charts">
+      <div class="chart-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div class="chart-title"> Embudo de Ventas</div>
+          <span class="badge-o">2026</span>
+        </div>
+        <div style="position:relative;height:200px">
+          <canvas id="chartFunnel"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div class="chart-title"> Clientes por Tipo</div>
+        </div>
+        <div style="position:relative;height:200px">
+          <canvas id="chartTipo"></canvas>
+        </div>
+      </div>
+      <div class="chart-card" style="grid-column:1/-1">
+        <div class="chart-title" style="margin-bottom:14px">📅 Actividad Semanal</div>
+        <div style="position:relative;height:150px">
+          <canvas id="chartSemanal"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kanban -->
     <div class="pipe" id="pipe-board"></div>
   </div>
 
-  <!-- ===== PORTAFOLIO ===== -->
+  <!-- ==============================================================
+       PORTAFOLIO
+       ============================================================== -->
   <div class="page" id="page-portafolio">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:9px;margin-bottom:18px">
-      <div class="sec-t" style="margin-bottom:0">🛏️ Portafolio 2026</div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap">
+    <div class="page-header mb-18">
+      <div class="sec-t mb-0">Portafolio 2026</div>
+      <div class="btn-group">
         <button class="btn bs bg2 filter-active" onclick="fprod('todos',this)">Todos</button>
         <button class="btn bs bg2" onclick="fprod('Hotelera',this)">🏨 Hotelera</button>
         <button class="btn bs bg2" onclick="fprod('Hospitalaria',this)">🏥 Hospitalaria</button>
@@ -308,37 +412,39 @@
     </div>
     <div class="g3" id="grid-prod">
       {% for p in productos %}
-      {% set img_path = "" %}
-      {% if "Antiescaras" in p.nombre %}{% set img_path = "antiescaras.jpg" %}
-      {% elif "Confort M" in p.nombre %}{% set img_path = "confort m.jpg" %}
-      {% elif "Confort S" in p.nombre %}{% set img_path = "confort s.jpg" %}
-      {% elif "Esencial M" in p.nombre %}{% set img_path = "esencial m.jpg" %}
-      {% elif "Esencial S" in p.nombre %}{% set img_path = "esencial s.jpg" %}
-      {% elif "Firme" in p.nombre %}{% set img_path = "firme.jpg" %}
-      {% elif "Resortado" in p.nombre %}{% set img_path = "resortado.jpg" %}
-      {% elif "Euro" in p.nombre %}{% set img_path = "tv euro.jpg" %}
-      {% endif %}
-      <div class="pc" onclick="verFichaDB('{{p.nombre}}','{{p.descripcion}}','{{img_path}}','{{p.materiales}}','{{p.medidas}}','{{p.garantia}}','{{p.firmeza}}','{{p.altura}}')" data-cat="{{p.categoria}}">
-        <div class="pc-img">
-          <img src="{{ url_for('static', filename='img/' + img_path) }}"
-               alt="{{ p.nombre }}"
-               style="width:100%;height:100%;object-fit:cover"
-               onerror="this.parentElement.innerHTML='<span style=\'font-size:48px\'>🛏️</span>'">
-        </div>
-        <div class="pc-b">
-          <div class="pc-n">{{ p.nombre }}</div>
-          <div class="pc-m">
-            <span class="pt2">📏 {{ p.altura or '—' }}</span>
-            <span class="pt2">🛡️ {{ p.garantia }}</span>
+        {% set img_path = "" %}
+        {% if    "Antiescaras" in p.nombre %}{% set img_path = "antiescaras.jpg" %}
+        {% elif  "Confort M"   in p.nombre %}{% set img_path = "confort m.jpg"   %}
+        {% elif  "Confort S"   in p.nombre %}{% set img_path = "confort s.jpg"   %}
+        {% elif  "Esencial M"  in p.nombre %}{% set img_path = "esencial m.jpg"  %}
+        {% elif  "Esencial S"  in p.nombre %}{% set img_path = "esencial s.jpg"  %}
+        {% elif  "Firme"       in p.nombre %}{% set img_path = "firme.jpg"       %}
+        {% elif  "Resortado"   in p.nombre %}{% set img_path = "resortado.jpg"   %}
+        {% elif  "Euro"        in p.nombre %}{% set img_path = "tv euro.jpg"     %}
+        {% endif %}
+        <div class="pc"
+             onclick="verFichaDB('{{p.nombre}}','{{p.descripcion}}','{{img_path}}','{{p.materiales}}','{{p.medidas}}','{{p.garantia}}','{{p.firmeza}}','{{p.altura}}')"
+             data-cat="{{p.categoria}}">
+          <div class="pc-img">
+            <img src="{{ url_for('static', filename='img/' + img_path) }}"
+                 alt="{{ p.nombre }}"
+                 style="width:100%;height:100%;object-fit:cover"
+                 onerror="this.parentElement.innerHTML='<span style=\'font-size:48px\'>🛏️</span>'">
           </div>
-          <div class="pc-f">
-            <span style="font-size:11px;color:var(--o);font-weight:700">{{ p.firmeza }}</span>
-            <button class="btn bp bs bi" onclick="event.stopPropagation();compartirWA('{{p.nombre}}')">
-              <span class="material-icons">share</span>
-            </button>
+          <div class="pc-b">
+            <div class="pc-n">{{ p.nombre }}</div>
+            <div class="pc-m">
+              <span class="pt2">{{ p.altura or '—' }}</span>
+              <span class="pt2">{{ p.garantia }}</span>
+            </div>
+            <div class="pc-f">
+              <span class="pc-firmeza">{{ p.firmeza }}</span>
+              <button class="btn bp bs bi" onclick="event.stopPropagation(); compartirWA('{{p.nombre}}')">
+                <span class="material-icons">share</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
       {% endfor %}
 
       <!-- TARJETA ESPUMAS -->
@@ -347,11 +453,10 @@
           <div class="espumas-preview-grid">
             <span class="ed-badge">D12</span><span class="ed-badge">D18</span>
             <span class="ed-badge">D23</span><span class="ed-badge">D26</span>
-            <span class="ed-badge ed-top">D30</span><span class="ed-badge ed-top">D40</span>
+            <span class="ed-badge">D30</span><span class="ed-badge">D40</span>
           </div>
         </div>
         <div class="pc-b">
-          <div class="pc-l">Espumas Industriales</div>
           <div class="pc-n">Espumas por Densidad</div>
           <div class="pc-m">
             <span class="pt2">🧊 6 densidades</span>
@@ -359,7 +464,7 @@
             <span class="pt2">📐 Precio/m³</span>
           </div>
           <div class="pc-f">
-            <span style="font-size:11px;color:var(--o);font-weight:700">Convencional · Especial</span>
+            <span class="pc-firmeza">Convencional · Especial</span>
             <button class="btn bp bs" onclick="event.stopPropagation();irA('calculadora')">
               <span class="material-icons" style="font-size:13px">calculate</span>
             </button>
@@ -374,7 +479,6 @@
           <span style="font-size:9px;color:#60a5fa;font-weight:700;letter-spacing:.1em;text-transform:uppercase">Institucional</span>
         </div>
         <div class="pc-b">
-          <div class="pc-l">Limpieza Institucional</div>
           <div class="pc-n">Esponjas Premium</div>
           <div class="pc-m">
             <span class="pt2">🏢 Oficinas</span>
@@ -382,7 +486,7 @@
             <span class="pt2">🏥 Clínicas</span>
           </div>
           <div class="pc-f">
-            <span style="font-size:11px;color:var(--info);font-weight:700">Venta institucional</span>
+            <span class="pc-firmeza" style="color:var(--info)">Venta institucional</span>
             <button class="btn bg2 bs bi" onclick="event.stopPropagation();abrirModal('m-esponjas')">
               <span class="material-icons">info</span>
             </button>
@@ -392,15 +496,17 @@
     </div>
   </div>
 
-  <!-- ===== CALCULADORA ESPUMAS ===== -->
+  <!-- ==============================================================
+       CALCULADORA DE ESPUMAS
+       ============================================================== -->
   <div class="page" id="page-calculadora">
     <div class="sec-t">🧮 Calculadora de Espumas</div>
-    <div class="g2" style="margin-bottom:18px">
+    <div class="g2 mb-18">
 
-      <!-- Panel precios -->
+      <!-- Panel precios por densidad -->
       <div class="card">
         <div class="card-title">⚙️ Precios por Densidad ($/m³)</div>
-        <div style="font-size:11px;color:var(--text2);margin-bottom:14px">Edita los precios. Se guardan automáticamente en el navegador.</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:14px">Edita los precios — se guardan en el navegador.</div>
         <div id="lista-densidades"></div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border2)">
           <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">🎨 Colores disponibles</div>
@@ -454,18 +560,12 @@
           </div>
         </div>
         <div class="calc-resultado" id="calc-resultado">
-          <div class="calc-res-row">
-            <span>Volumen</span><strong id="res-m3">— m³</strong>
-          </div>
-          <div class="calc-res-row">
-            <span>Precio/m³</span><strong id="res-precio-m3">—</strong>
-          </div>
+          <div class="calc-res-row"><span>Volumen</span><strong id="res-m3">— m³</strong></div>
+          <div class="calc-res-row"><span>Precio/m³</span><strong id="res-precio-m3">—</strong></div>
           <div class="calc-res-divider"></div>
-          <div class="calc-res-row calc-res-total">
-            <span>Total estimado</span><strong id="res-total">$ —</strong>
-          </div>
+          <div class="calc-res-row calc-res-total"><span>Total estimado</span><strong id="res-total">$ —</strong></div>
         </div>
-        <div style="display:flex;gap:9px;margin-top:16px">
+        <div style="display:flex;gap:9px;margin-top:14px">
           <button class="btn bg2" style="flex:1" onclick="limpiarCalc()">Limpiar</button>
           <button class="btn bp" style="flex:2" onclick="compartirCotizacionEspuma()">
             <span class="material-icons" style="font-size:14px">share</span> Enviar por WhatsApp
@@ -474,121 +574,189 @@
       </div>
     </div>
 
-    <!-- Tabla referencia -->
+    <!-- Tabla referencia densidades -->
     <div class="card">
-      <div class="card-title">📊 Tabla de Referencia — Densidades</div>
+      <div class="card-title"> Tabla de Referencia — Densidades</div>
       <div class="tw">
         <table>
-          <thead><tr><th>Densidad</th><th>Uso recomendado</th><th>Tipo</th><th>Precio/m³</th><th></th></tr></thead>
+          <thead><tr><th>Densidad</th><th>Uso recomendado</th><th>Tipo</th><th>Precio Conv./m³</th><th>Precio Esp./m³</th></tr></thead>
           <tbody id="tabla-densidades-ref"></tbody>
         </table>
       </div>
     </div>
   </div>
 
-  <!-- ===== BITÁCORA ===== -->
-  <div class="page" id="page-bitacora">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:18px">
-      <div class="sec-t" style="margin-bottom:0">📓 Bitácora de Visitas</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn bg2 bs" onclick="exportarBitacora()">
-          <span class="material-icons" style="font-size:14px">email</span> Enviar por correo
-        </button>
-        <button class="btn bp" onclick="abrirModal('m-bitacora')">
-          <span class="material-icons" style="font-size:15px">add</span> Nuevo Registro
-        </button>
-      </div>
-    </div>
-    <div style="display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap">
-      <input class="inp" style="flex:1;min-width:160px" placeholder="🔍 Buscar negocio..." id="bq" oninput="filtrarBitacora()">
-      <input class="inp" type="date" id="bq-fecha" onchange="filtrarBitacora()" style="width:145px">
-    </div>
-    <div id="lista-bitacora">
-      <div style="text-align:center;padding:36px;color:var(--text3)">
-        <span class="material-icons" style="font-size:36px;display:block;margin-bottom:8px">menu_book</span>
-        Sin registros en la bitácora
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== MAPA ===== -->
+  <!-- ==============================================================
+       MAPA
+       ============================================================== -->
   <div class="page" id="page-mapa">
-    <div class="sec-t">🗺️ Mapa de Visitas — Barranquilla</div>
-    <div class="card" style="padding:14px;margin-bottom:18px">
+    <div class="sec-t">Mapa de Visitas — Barranquilla</div>
+    <div class="card mb-18" style="padding:14px">
       <div id="mapa-litoral-full"></div>
     </div>
-    <div class="sec-t">📋 Historial de Visitas</div>
+    <div class="sec-t">Historial de Visitas</div>
     <div class="tw">
       <table>
         <thead><tr><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Estado</th><th>Ubicación</th></tr></thead>
-        <tbody id="tabla-visitas"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text2)">Cargando visitas...</td></tr></tbody>
+        <tbody id="tabla-visitas">
+          <tr><td colspan="5" class="td-loading">Cargando visitas...</td></tr>
+        </tbody>
       </table>
     </div>
   </div>
 
-  <!-- ===== SEGUIMIENTOS ===== -->
-  <div class="page" id="page-seguimiento">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px">
-      <div class="sec-t" style="margin-bottom:0">🔔 Seguimientos Pendientes</div>
-      <button class="btn bp bs" onclick="abrirModal('m-seguimiento')">+ Agregar</button>
+  <!-- ==============================================================
+       RUTAS DEL DÍA
+       ============================================================== -->
+  <div class="page" id="page-rutas">
+    <div class="page-header mb-18">
+      <div class="sec-t mb-0">Ruta del Día</div>
+      <div class="btn-group">
+        <button class="btn bg2 bs" onclick="optimizarRuta()">
+          <span class="material-icons" style="font-size:14px">auto_fix_high</span> Optimizar
+        </button>
+        <button class="btn bp bs" onclick="abrirModal('m-add-ruta')">
+          <span class="material-icons" style="font-size:14px">add</span> Agregar
+        </button>
+      </div>
     </div>
-    <div id="list-seguimientos">
-      <div style="text-align:center;padding:30px;color:var(--text2)">Cargando...</div>
+
+    <div class="ruta-info-bar">
+      <span id="ruta-contador">0 / 5 clientes en ruta</span>
+      <span id="ruta-estado-txt" style="color:var(--ok);font-size:11px"></span>
+    </div>
+
+    <div class="g2-ruta mb-18">
+      <div>
+        <div class="section-label">Clientes en Ruta</div>
+        <div id="lista-ruta">
+          <div class="ruta-empty">
+            <span class="material-icons" style="font-size:36px;color:var(--text3);display:block;margin-bottom:8px">route</span>
+            Agrega hasta 5 clientes para planificar tu ruta de hoy
+          </div>
+        </div>
+        <button class="btn bp btn-full mt-14" id="btn-abrir-maps" style="display:none" onclick="abrirEnGoogleMaps()">
+          <span class="material-icons" style="font-size:15px">open_in_new</span> Abrir Ruta en Google Maps
+        </button>
+      </div>
+      <div>
+        <div class="section-label">Mapa de Ruta</div>
+        <div class="card" style="padding:10px">
+          <div id="mapa-ruta" style="height:320px;border-radius:10px;border:1px solid var(--border2)"></div>
+        </div>
+        <div style="margin-top:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div class="section-label" style="margin-bottom:0">Negocios Cercanos (500m)</div>
+            <button class="btn bg2 bs" onclick="buscarCercanos()">
+              <span class="material-icons" style="font-size:13px">radar</span> Detectar
+            </button>
+          </div>
+          <div id="lista-cercanos" style="font-size:12px;color:var(--text3);padding:6px 0">
+            Activa la detección para ver negocios cercanos
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- ===== ASISTENTE IA ===== -->
+  <!-- ==============================================================
+       BITÁCORA
+       ============================================================== -->
+  <div class="page" id="page-bitacora">
+    <div class="page-header mb-18">
+      <div class="sec-t mb-0">Bitácora de Visitas</div>
+      <div class="btn-group">
+        <button class="btn bg2 bs" onclick="exportarBitacora()">
+          <span class="material-icons" style="font-size:14px">download</span> Exportar
+        </button>
+        <button class="btn bp bs" onclick="abrirModal('m-bitacora')">
+          <span class="material-icons" style="font-size:14px">add</span> Registrar
+        </button>
+      </div>
+    </div>
+    <div class="filtros mb-14">
+      <input class="inp" placeholder="Buscar negocio..." id="bq" oninput="filtrarBitacora()">
+      <input class="inp w-130" type="date" id="bq-fecha" onchange="filtrarBitacora()">
+    </div>
+    <div id="lista-bitacora"></div>
+  </div>
+
+  <!-- ==============================================================
+       SEGUIMIENTOS
+       ============================================================== -->
+  <div class="page" id="page-seguimiento">
+    <div class="page-header mb-18">
+      <div class="sec-t mb-0">Seguimientos Pendientes</div>
+      <button class="btn bp bs" onclick="abrirModal('m-seguimiento')">
+        <span class="material-icons" style="font-size:14px">add</span> Agregar
+      </button>
+    </div>
+    <div id="list-seguimientos">
+      <div class="td-loading">Cargando...</div>
+    </div>
+  </div>
+
+  <!-- ==============================================================
+       ASISTENTE IA
+       ============================================================== -->
   <div class="page" id="page-asistente">
-    <div class="sec-t">🤖 Asistente IA de Ventas</div>
+    <div class="sec-t">Asistente IA de Ventas</div>
     <div class="g2">
-      <div>
-        <div style="background:var(--card);border:1px solid var(--border2);border-radius:16px;display:flex;flex-direction:column;height:440px">
-          <div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px" id="chat-msgs">
-            <div style="max-width:82%;padding:12px 15px;border-radius:4px 14px 14px 14px;font-size:13px;line-height:1.65;background:var(--card2);border:1px solid var(--border2)">
-              <div style="font-size:9px;font-weight:700;color:var(--o);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em">✨ Asistente Litoral</div>
-              ¡Hola Cándida! 👋 Conozco todo el Portafolio 2026, las espumas D12–D40 y las esponjas institucionales.<br><br>
+
+      <div class="chat-box">
+        <div class="chat-msgs" id="chat-msgs">
+          <div class="msg-ai-wrap">
+            <img class="ai-avatar" src="{{ url_for('static', filename='img/ai_avatar.jpg') }}"
+                 onerror="this.src='https://ui-avatars.com/api/?name=IA&background=1E2330&color=F05A1A'"
+                 alt="Asistente IA">
+            <div class="msg-ai">
+              <div class="msg-label">Asistente Litoral</div>
+              Hola Cándida 👋 Conozco todo el Portafolio 2026, espumas D12–D40 y esponjas institucionales.<br><br>
               Puedo ayudarte con mensajes de WhatsApp, cotizaciones de espumas, estrategias de cierre y más. 🛏️🧊
             </div>
           </div>
-          <div style="padding:11px 13px;border-top:1px solid var(--border2);display:flex;gap:8px">
-            <input style="flex:1;background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:9px 12px;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;outline:none" id="cinp" placeholder="Escribe tu pregunta..." onkeydown="if(event.key==='Enter')enviarIA()">
-            <button style="background:linear-gradient(135deg,var(--o),var(--o2));border:none;color:#fff;width:40px;height:40px;border-radius:10px;cursor:pointer;font-size:16px;flex-shrink:0" onclick="enviarIA()">➤</button>
-          </div>
         </div>
-      </div>
-      <div>
-        <div class="card">
-          <div class="card-title">💡 Preguntas Rápidas</div>
-          {% for q in [
-            ('🏨','¿Qué productos recomiendas para un hotel 4 estrellas?'),
-            ('🏥','¿Qué colchoneta es ideal para una clínica o IPS?'),
-            ('🧊','¿Cuál espuma recomiendas para colchón institucional?'),
-            ('📲','Genera un mensaje de WhatsApp para seguimiento post-cotización'),
-            ('💬','El cliente dice que el precio es muy alto, ¿cómo respondo?'),
-            ('🫧','¿Qué esponjas recomiendas para una empresa de oficinas?'),
-            ('✉️','Genera un correo de presentación para un motel nuevo'),
-          ] %}
-          <button style="background:var(--card2);border:1px solid var(--border2);border-radius:9px;padding:8px 12px;font-size:12px;color:var(--text2);cursor:pointer;transition:all .2s;text-align:left;width:100%;display:flex;align-items:center;gap:8px;margin-bottom:6px"
-            onclick="qIA('{{q[1]}}')"
-            onmouseover="this.style.borderColor='var(--o)';this.style.color='var(--o)'"
-            onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'">
-            {{q[0]}} {{q[1][:45]}}...
+        <div class="chat-input-row">
+          <input class="chat-inp" id="cinp" placeholder="Escribe tu pregunta..."
+                 onkeydown="if(event.key==='Enter') enviarIA()">
+          <button class="chat-send-btn" onclick="enviarIA()">
+            <span class="material-icons">send</span>
           </button>
-          {% endfor %}
         </div>
       </div>
+
+      <div class="card">
+        <div class="card-title">Preguntas Rápidas</div>
+        {% for q in [
+          ('🏨','¿Qué productos recomiendas para un hotel 4 estrellas?'),
+          ('🏥','¿Qué colchoneta es ideal para una clínica o IPS?'),
+          ('🧊','¿Cuál espuma recomiendas para colchón institucional?'),
+          ('📲','Genera un mensaje de WhatsApp para seguimiento post-cotización'),
+          ('💬','El cliente dice que el precio es muy alto, ¿cómo respondo?'),
+          ('🫧','¿Qué esponjas recomiendas para una empresa de oficinas?'),
+          ('✉️','Genera un correo de presentación para un motel nuevo'),
+        ] %}
+        <button class="quick-btn" onclick="qIA('{{q[1]}}')">
+          <span class="material-icons" style="font-size:14px;flex-shrink:0;color:var(--o)">chevron_right</span>
+          {{q[0]}} {{ q[1][:48] }}{% if q[1]|length > 48 %}...{% endif %}
+        </button>
+        {% endfor %}
+      </div>
+
     </div>
-  </div>
+  </div><!-- /asistente -->
 
 </div><!-- /main-content -->
 
-<!-- BOTTOM NAV MOBILE -->
+<!-- ================================================================
+     BOTTOM NAV (móvil)
+     ================================================================ -->
 <nav class="bottom-nav">
   <button class="bni active" onclick="irA('dashboard',this,1)">
     <span class="material-icons">dashboard</span>Inicio
   </button>
   <button class="bni" onclick="irA('rutas',this,1)">
-    <span class="material-icons">route</span>Ruta
+    <span class="material-icons">alt_route</span>Ruta
   </button>
   <button class="bni" onclick="irA('portafolio',this,1)">
     <span class="material-icons">inventory_2</span>Productos
@@ -601,9 +769,11 @@
   </button>
 </nav>
 
-<!-- ═══════════════ MODALES ═══════════════ -->
+<!-- ================================================================
+     MODALES
+     ================================================================ -->
 
-<!-- Nueva Visita -->
+<!-- Modal: Nueva Visita -->
 <div class="mo" id="m-visita">
   <div class="modal">
     <div class="mt"><span class="material-icons">add_location</span> Nueva Visita</div>
@@ -618,7 +788,7 @@
       <div class="ig"><label>Teléfono</label><input class="inp" id="mv-tel" placeholder="300 000 0000" type="tel"></div>
       <div class="ig"><label>Email</label><input class="inp" id="mv-email" placeholder="correo@empresa.com" type="email"></div>
       <div class="ig"><label>Encargado de compras</label><input class="inp" id="mv-encargado" placeholder="Nombre contacto"></div>
-      <div class="ig"><label>Producto Interés</label>
+      <div class="ig"><label>Producto de interés</label>
         <select class="inp" id="mv-prod">
           {% for p in productos %}<option>{{ p.nombre }}</option>{% endfor %}
           <option>Espumas D12</option><option>Espumas D18</option><option>Espumas D23</option>
@@ -634,17 +804,17 @@
       </select>
     </div>
     <div class="ig"><label>Notas</label><textarea class="inp" id="mv-notas" placeholder="Observaciones..."></textarea></div>
-    <button class="btn bg2 bs" onclick="capturarGPS()" style="margin-bottom:12px;width:100%;justify-content:center">
-      <span class="material-icons" style="font-size:15px">gps_fixed</span> Capturar Ubicación GPS
+    <button class="btn bg2 bs btn-full mb-12" onclick="capturarGPS()">
+      <span class="material-icons">gps_fixed</span> Capturar Ubicación GPS
     </button>
     <div class="mf">
       <button class="btn bg2" onclick="cerrarModal('m-visita')">Cancelar</button>
-      <button class="btn bp" onclick="guardarVisitaModal()">💾 Guardar Visita</button>
+      <button class="btn bp" onclick="guardarVisitaModal()">Guardar Visita</button>
     </div>
   </div>
 </div>
 
-<!-- Seguimiento -->
+<!-- Modal: Nuevo Seguimiento -->
 <div class="mo" id="m-seguimiento">
   <div class="modal">
     <div class="mt"><span class="material-icons">notifications_active</span> Nuevo Seguimiento</div>
@@ -653,29 +823,26 @@
     <div class="ig"><label>Fecha</label><input class="inp" type="date" id="ns-f"></div>
     <div class="ig"><label>Prioridad</label>
       <select class="inp" id="ns-p">
-        <option value="alta">🔴 Alta</option><option value="media">🟡 Media</option><option value="baja">🟢 Baja</option>
+        <option value="alta">🔴 Alta</option>
+        <option value="media">🟡 Media</option>
+        <option value="baja">🟢 Baja</option>
       </select>
     </div>
     <div class="mf">
       <button class="btn bg2" onclick="cerrarModal('m-seguimiento')">Cancelar</button>
-      <button class="btn bp" onclick="guardarSeg()">💾 Guardar</button>
+      <button class="btn bp" onclick="guardarSeg()">Guardar</button>
     </div>
   </div>
 </div>
 
-<!-- Ficha producto -->
-<div class="mo" id="m-ficha">
-  <div class="modal" id="m-ficha-body"></div>
-</div>
-
-<!-- Agregar a ruta -->
+<!-- Modal: Agregar a Ruta -->
 <div class="mo" id="m-add-ruta">
   <div class="modal">
     <div class="mt"><span class="material-icons">add_location_alt</span> Agregar a Ruta del Día</div>
     <div class="ig"><label>Nombre del negocio</label><input class="inp" id="ar-negocio" placeholder="Hotel, Clínica, Empresa..."></div>
     <div class="ig"><label>Encargado de compras</label><input class="inp" id="ar-encargado" placeholder="Nombre del contacto"></div>
     <div class="ig"><label>Teléfono</label><input class="inp" id="ar-tel" placeholder="300 000 0000" type="tel"></div>
-    <div class="ig"><label>Correo</label><input class="inp" id="ar-email" placeholder="correo@empresa.com" type="email"></div>
+    <div class="ig"><label>Email</label><input class="inp" id="ar-email" placeholder="correo@empresa.com" type="email"></div>
     <div class="ig"><label>Tipo de negocio</label>
       <select class="inp" id="ar-tipo">
         <option value="hotel">🏨 Hotel</option>
@@ -696,17 +863,19 @@
   </div>
 </div>
 
-<!-- Bitácora nuevo registro -->
+<!-- Modal: Registro Bitácora -->
 <div class="mo" id="m-bitacora">
   <div class="modal">
     <div class="mt"><span class="material-icons">menu_book</span> Registrar en Bitácora</div>
     <div class="ig"><label>Negocio visitado</label><input class="inp" id="bit-negocio" placeholder="Nombre del negocio"></div>
-    <div class="ig"><label>Fecha</label><input class="inp" type="date" id="bit-fecha"></div>
-    <div class="ig"><label>Tipo de negocio</label>
-      <select class="inp" id="bit-tipo">
-        <option>Hotel</option><option>Clínica / IPS</option><option>Motel</option>
-        <option>Oficina / Empresa</option><option>Mueblería</option><option>Otros</option>
-      </select>
+    <div class="g2">
+      <div class="ig"><label>Fecha</label><input class="inp" type="date" id="bit-fecha"></div>
+      <div class="ig"><label>Tipo</label>
+        <select class="inp" id="bit-tipo">
+          <option>Hotel</option><option>Clínica / IPS</option><option>Motel</option>
+          <option>Oficina / Empresa</option><option>Mueblería</option><option>Otros</option>
+        </select>
+      </div>
     </div>
     <div class="ig"><label>Observaciones</label>
       <textarea class="inp" id="bit-obs" placeholder="¿Cómo fue la visita? ¿Qué interés mostró?..."></textarea>
@@ -720,28 +889,33 @@
       </select>
     </div>
     <div class="ig"><label>Productos mencionados</label>
-      <input class="inp" id="bit-prods" placeholder="ej: Imperial Resortado, Espuma D30...">
+      <input class="inp" id="bit-prods" placeholder="Imperial Firme, Espuma D30...">
     </div>
     <div class="mf">
       <button class="btn bg2" onclick="cerrarModal('m-bitacora')">Cancelar</button>
-      <button class="btn bp" onclick="guardarBitacora()">💾 Guardar</button>
+      <button class="btn bp" onclick="guardarBitacora()">Guardar</button>
     </div>
   </div>
 </div>
 
-<!-- Esponjas info -->
+<!-- Modal: Ficha Producto -->
+<div class="mo" id="m-ficha">
+  <div class="modal" id="m-ficha-body"></div>
+</div>
+
+<!-- Modal: Esponjas -->
 <div class="mo" id="m-esponjas">
   <div class="modal">
     <div class="mt">🫧 Esponjas Institucionales</div>
     <div style="background:var(--card2);border-radius:12px;padding:16px;margin-bottom:16px;font-size:13px;color:var(--text2);line-height:1.8">
-      Línea de esponjas para uso institucional, ideal para empresas que manejan limpieza y mantenimiento.<br><br>
+      Línea de esponjas para uso institucional, ideal para empresas de limpieza y mantenimiento.<br><br>
       <strong style="color:var(--text)">Clientes objetivo:</strong><br>
       🏨 Hoteles — limpieza de habitaciones y baños<br>
       🏥 Clínicas — áreas de desinfección<br>
       🏢 Empresas — Interoffice S.A.S y outsourcing<br>
       🫧 Negocios con alta rotación de insumos de aseo
     </div>
-    <div style="display:flex;gap:9px;justify-content:flex-end">
+    <div class="mf">
       <button class="btn bg2" onclick="cerrarModal('m-esponjas')">Cerrar</button>
       <button class="btn bp" onclick="compartirWA('Esponjas Institucionales');cerrarModal('m-esponjas')">
         📲 Enviar por WhatsApp
@@ -750,327 +924,29 @@
   </div>
 </div>
 
-<div class="toast" id="toast"><span id="t-ico">✅</span><span id="t-txt"></span></div>
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span class="material-icons" style="font-size:16px;color:var(--o)">info</span>
+  <span id="t-txt"></span>
+</div>
 
+<!-- ================================================================
+     SCRIPTS
+     ================================================================ -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
 <script>
-// ─── THEME ───
-let dark = true;
-function toggleTheme() {
-  dark = !dark;
-  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-  document.getElementById('th-btn').textContent = dark ? '🌙' : '☀️';
-  if (typeof actualizarCapaMapa === 'function') actualizarCapaMapa(dark ? 'dark' : 'light');
-  toast(dark ? '🌙 Modo noche' : '☀️ Modo día');
-}
-
-// ─── DATE ───
-document.getElementById('top-date').textContent =
-  new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'});
-
-// ─── SIDEBAR ───
-function abrirSB() {
-  document.getElementById('sidebar').classList.add('active');
-  document.getElementById('sb-overlay').classList.add('show');
-}
-function cerrarSB() {
-  document.getElementById('sidebar').classList.remove('active');
-  document.getElementById('sb-overlay').classList.remove('show');
-}
-
-// ─── NAVIGATION ───
-const titles = {
-  dashboard:'📊 <span>Dashboard</span>',
-  rutas:'🗺️ <span>Rutas del Día</span>',
-  clientes:'👥 <span>Clientes</span>',
-  pipeline:'📈 <span>Pipeline</span>',
-  portafolio:'🛏️ <span>Portafolio</span>',
-  calculadora:'🧮 <span>Calculadora Espumas</span>',
-  bitacora:'📓 <span>Bitácora</span>',
-  mapa:'🗺️ <span>Mapa &amp; Visitas</span>',
-  seguimiento:'🔔 <span>Seguimientos</span>',
-  asistente:'🤖 <span>Asistente IA</span>',
-};
-function irA(name, btn, mob) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
-  document.getElementById('pg-title').innerHTML = titles[name] || name;
-  if (!mob) {
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-  } else {
-    document.querySelectorAll('.bni').forEach(n => n.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-  }
-  cerrarSB();
-  if (name === 'clientes') cargarTablaClientes();
-  if (name === 'pipeline') renderPipeline();
-  if (name === 'seguimiento') cargarSeguimientos();
-  if (name === 'rutas') { setTimeout(() => { if (typeof mapaRuta !== 'undefined' && mapaRuta) mapaRuta.invalidateSize(); }, 300); if (typeof initMapaRuta === 'function') initMapaRuta(); }
-  if (name === 'bitacora') cargarBitacora();
-  if (name === 'mapa') { setTimeout(() => { if (typeof mapaFull !== 'undefined') mapaFull.invalidateSize(); }, 200); }
-  if (name === 'calculadora') { if (typeof initCalculadora === 'function') initCalculadora(); }
-}
-
-// ─── GPS ───
-let gpsData = {lat: null, lon: null};
-function capturarGPS() {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(pos => {
-      gpsData = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-      toast('📍 Ubicación capturada');
-    }, err => toast('⚠️ Error GPS: ' + err.message));
-  }
-}
-
-// ─── GUARDAR VISITA rápida ───
-async function guardarVisita() {
-  const cli = document.getElementById('v-cliente').value.trim();
-  if (!cli) { toast('⚠️ Ingresa el nombre del cliente'); return; }
-  await fetch('/registrar_visita', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      cliente: cli, tipo_cliente: document.getElementById('v-tipo').value,
-      producto: document.getElementById('v-producto').value,
-      lat: gpsData.lat, lon: gpsData.lon, estado: 'Prospecto',
-    })
-  });
-  document.getElementById('v-cliente').value = '';
-  gpsData = {lat: null, lon: null};
-  toast('✅ Visita registrada');
-  setTimeout(() => location.reload(), 1200);
-}
-
-// ─── GUARDAR VISITA modal ───
-async function guardarVisitaModal() {
-  const cli = document.getElementById('mv-cli').value.trim();
-  if (!cli) { toast('⚠️ Ingresa el nombre del cliente'); return; }
-  await fetch('/registrar_visita', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      cliente: cli, tipo_cliente: document.getElementById('mv-tipo').value,
-      telefono: document.getElementById('mv-tel').value,
-      email: document.getElementById('mv-email').value,
-      encargado: document.getElementById('mv-encargado').value,
-      producto: document.getElementById('mv-prod').value,
-      estado: document.getElementById('mv-est').value,
-      notas: document.getElementById('mv-notas').value,
-      lat: gpsData.lat, lon: gpsData.lon,
-    })
-  });
-  cerrarModal('m-visita');
-  toast('✅ Visita guardada');
-  setTimeout(() => location.reload(), 1200);
-}
-
-// ─── TABLA CLIENTES ───
-let todasVisitas = [];
-async function cargarTablaClientes() {
-  const r = await fetch('/obtener_visitas');
-  todasVisitas = await r.json();
-  renderTabla(todasVisitas);
-}
-function renderTabla(data) {
-  const stMap = {Prospecto:'s-p',Contactado:'s-c',Interesado:'s-i',Cotización:'s-q',Cliente:'s-k'};
-  const tipoIco = {Hotel:'🏨',Clínica:'🏥',Motel:'🛏️','Oficina / Empresa':'🏢',IPS:'💊',Otros:'📦'};
-  document.getElementById('tb-clientes').innerHTML = data.length
-    ? data.map(v => `
-      <tr>
-        <td><b>${v.cliente}</b></td>
-        <td style="font-size:11px">${tipoIco[v.tipo_cliente]||'🏢'} ${v.tipo_cliente||'—'}</td>
-        <td style="font-size:11px">${v.producto||'—'}</td>
-        <td><span class="st ${stMap[v.estado]||'s-p'}">${v.estado}</span></td>
-        <td style="font-size:11px;color:var(--text2)">${v.fecha}</td>
-        <td>${v.latitud?`<a href="https://maps.google.com?q=${v.latitud},${v.longitud}" target="_blank" style="color:var(--info);text-decoration:none;font-size:11px">📍 Ver</a>`:'—'}</td>
-        <td>
-          <button class="btn bg2 bi bs" onclick="wa('${v.cliente}')" title="WhatsApp">📲</button>
-          <button class="btn bg2 bi bs" onclick="delVisita(${v.id})" title="Eliminar">🗑️</button>
-        </td>
-      </tr>`).join('')
-    : '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text2)">Sin clientes registrados</td></tr>';
-}
-function filtrarTabla() {
-  const q = document.getElementById('sq').value.toLowerCase();
-  const est = document.getElementById('sf-est').value;
-  renderTabla(todasVisitas.filter(v =>
-    (!q || v.cliente.toLowerCase().includes(q)) && (!est || v.estado === est)
-  ));
-}
-async function delVisita(id) {
-  if (!confirm('¿Eliminar esta visita?')) return;
-  await fetch('/eliminar_visita/'+id, {method:'DELETE'});
-  cargarTablaClientes(); toast('🗑️ Eliminado');
-}
-function wa(nombre) {
-  const msg = encodeURIComponent(`Hola, buenos días 🌅\nLe escribe *Cándida Caballero* de *Espumados del Litoral* 🛏️\nQuería hacer seguimiento sobre los productos para *${nombre}*. ¿Tiene alguna duda o podemos agendar una visita?`);
-  window.open(`https://wa.me/?text=${msg}`, '_blank');
-}
-
-// ─── PIPELINE ───
-const stages = [
-  {id:'Prospecto',lbl:'Prospecto',c:'#F59E0B'},{id:'Contactado',lbl:'Contactado',c:'#3B82F6'},
-  {id:'Interesado',lbl:'Interesado',c:'#F05A1A'},{id:'Cotización',lbl:'Cotización',c:'#A855F7'},
-  {id:'Cliente',lbl:'✅ Cliente',c:'#22C55E'},
-];
-function renderPipeline() {
-  if (!todasVisitas.length) { cargarTablaClientes().then(() => renderPipeline()); return; }
-  document.getElementById('pipe-board').innerHTML = stages.map(s => {
-    const items = todasVisitas.filter(v => v.estado === s.id);
-    return `<div class="pcol">
-      <div class="ph" style="background:${s.c}20;color:${s.c}">${s.lbl}<span>${items.length}</span></div>
-      <div class="pb3">${items.map(v => `<div class="pi"><div class="pi-n">🏢 ${v.cliente}</div><div class="pi-s">${v.producto||'—'}</div></div>`).join('')||'<div style="text-align:center;color:var(--text3);font-size:10px;padding:16px">Vacío</div>'}</div>
-    </div>`;
-  }).join('');
-}
-
-// ─── PORTAFOLIO FILTER ───
-function fprod(cat, btn) {
-  document.querySelectorAll('#grid-prod .pc').forEach(c => {
-    c.style.display = (cat === 'todos' || c.dataset.cat === cat) ? '' : 'none';
-  });
-  document.querySelectorAll('.filter-active').forEach(b => b.classList.remove('filter-active'));
-  if (btn) btn.classList.add('filter-active');
-}
-
-// ─── FICHA PRODUCTO ───
-function verFichaDB(nombre,desc,img,mat,med,gar,firmeza,altura) {
-  const emojis = {Imperial:'🛏️',Colchoneta:'🏥',Almohada:'🌙',Cojín:'🛋️'};
-  const emoji = Object.entries(emojis).find(([k]) => nombre.includes(k))?.[1] || '🛏️';
-  document.getElementById('m-ficha-body').innerHTML = `
-    <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:18px">
-      <div style="font-size:52px;flex-shrink:0">${emoji}</div>
-      <div><div style="font-family:'Clash Display',sans-serif;font-size:20px;font-weight:700">${nombre}</div>
-      <div style="font-size:12px;color:var(--text2);margin-top:4px;font-style:italic">"${desc}"</div></div>
-    </div>
-    <div class="g2" style="margin-bottom:14px">
-      <div style="background:var(--card2);border-radius:11px;padding:12px"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">FIRMEZA</div><div style="font-weight:700;color:var(--o)">${firmeza||'—'}</div></div>
-      <div style="background:var(--card2);border-radius:11px;padding:12px"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">ALTURA</div><div style="font-weight:700">${altura||'—'}</div></div>
-      <div style="background:var(--card2);border-radius:11px;padding:12px"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">GARANTÍA</div><div style="font-weight:700;color:var(--ok)">${gar}</div></div>
-      <div style="background:var(--card2);border-radius:11px;padding:12px"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">MATERIALES</div><div style="font-weight:700;font-size:11px">${mat}</div></div>
-    </div>
-    <div style="background:var(--card2);border-radius:11px;padding:12px;margin-bottom:14px">
-      <div style="font-size:10px;color:var(--text2);margin-bottom:5px">MEDIDAS</div>
-      <div style="font-size:12px;line-height:1.9">${med}</div>
-    </div>
-    <div style="background:rgba(240,90,26,.06);border:1px solid rgba(240,90,26,.2);border-radius:12px;padding:14px;margin-bottom:16px">
-      <div style="font-size:10px;font-weight:700;color:var(--o);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">🧮 Calculadora rápida</div>
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input class="inp" type="number" id="fc-l" placeholder="Largo cm" style="flex:1" oninput="calcFicha()">
-        <input class="inp" type="number" id="fc-a" placeholder="Ancho cm" style="flex:1" oninput="calcFicha()">
-        <input class="inp" type="number" id="fc-h" placeholder="Alto cm" style="flex:1" oninput="calcFicha()">
-      </div>
-      <div id="fc-resultado" style="font-size:12px;color:var(--text2)">Ingresa dimensiones para calcular m³</div>
-    </div>
-    <div style="display:flex;gap:9px;justify-content:flex-end">
-      <button class="btn bg2" onclick="cerrarModal('m-ficha')">Cerrar</button>
-      <button class="btn bp" onclick="compartirWA('${nombre}');cerrarModal('m-ficha')">📲 Enviar por WhatsApp</button>
-    </div>`;
-  abrirModal('m-ficha');
-}
+/* calcFicha — Calculadora rápida dentro del modal de ficha de producto */
 function calcFicha() {
-  const l = parseFloat(document.getElementById('fc-l').value)||0;
-  const a = parseFloat(document.getElementById('fc-a').value)||0;
-  const h = parseFloat(document.getElementById('fc-h').value)||0;
-  if (!l||!a||!h) return;
-  const m3 = (l*a*h)/1000000;
-  document.getElementById('fc-resultado').innerHTML =
-    `<span style="color:var(--o);font-weight:700">Volumen: ${m3.toFixed(4)} m³</span> — Ve a Calculadora para cotizar con precio/m³`;
+  const l = parseFloat(document.getElementById('fc-l')?.value) || 0;
+  const a = parseFloat(document.getElementById('fc-a')?.value) || 0;
+  const h = parseFloat(document.getElementById('fc-h')?.value) || 0;
+  if (!l || !a || !h) return;
+  const m3 = (l * a * h) / 1000000;
+  const el = document.getElementById('fc-resultado');
+  if (el) el.innerHTML = `<span style="color:var(--o);font-weight:700">Volumen: ${m3.toFixed(4)} m³</span> — Ve a Calculadora para cotizar con precio/m³`;
 }
-function compartirWA(producto) {
-  const msg = encodeURIComponent(`Hola 👋, le escribe *Cándida Caballero*, Asesora Institucional de *Espumados del Litoral* 🛏️\n\nLe comparto información del producto *${producto}*, ideal para uso institucional.\n\n¿Le gustaría recibir más detalles o agendar una visita? 😊`);
-  window.open(`https://wa.me/?text=${msg}`, '_blank');
-}
-
-// ─── SEGUIMIENTOS ───
-async function cargarSeguimientos() {
-  const r = await fetch('/api/seguimientos');
-  const segs = await r.json();
-  const cols = {alta:'var(--err)',media:'var(--warn)',baja:'var(--ok)'};
-  document.getElementById('list-seguimientos').innerHTML = segs.length
-    ? segs.map(s => `
-      <div class="fu">
-        <div class="fd" style="background:${cols[s.prioridad]}"></div>
-        <div class="fb"><div class="fn">${s.cliente}</div><div class="fdt">${s.accion}</div></div>
-        <div class="fr"><div class="fdate">📅 ${s.fecha||'—'}</div><div style="font-size:9px;color:var(--text2)">${(s.prioridad||'').toUpperCase()}</div></div>
-        <button class="btn bg2 bi bs" onclick="completarSeg(${s.id})" title="Completado">✅</button>
-      </div>`).join('')
-    : `<div class="card" style="text-align:center;padding:36px"><div style="font-size:36px;margin-bottom:10px">🎉</div><b>¡Sin seguimientos pendientes!</b></div>`;
-}
-async function guardarSeg() {
-  const cli = document.getElementById('ns-c').value.trim();
-  if (!cli) { toast('⚠️ Ingresa el cliente'); return; }
-  await fetch('/api/seguimientos', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({cliente:cli, accion:document.getElementById('ns-a').value,
-      fecha:document.getElementById('ns-f').value, prioridad:document.getElementById('ns-p').value})
-  });
-  cerrarModal('m-seguimiento'); cargarSeguimientos(); toast('✅ Seguimiento guardado');
-}
-async function completarSeg(id) {
-  await fetch('/api/seguimientos/'+id, {method:'DELETE'});
-  cargarSeguimientos(); toast('✅ Completado');
-}
-
-// ─── IA ───
-const aiCtx = `Eres el asistente IA de ventas de Espumados del Litoral, Barranquilla, Colombia. Asistes a Cándida Caballero, Asesora Institucional.
-
-PORTAFOLIO COLCHONES: Imperial Hotel Resortado (37cm, resorte bonnel, 5 años), Imperial Hotel Firme (30cm, Extra Support, 5 años), Colchoneta Antiescaras (13cm, hospitalaria), Almohada Confort M (14cm), Confort S (12cm), Esencial M/S (10-12cm), Cojín TV Euro (43cm).
-
-ESPUMAS: D12 (muy suave, tapicería), D18 (suave), D23 (media), D26 (media-firme), D30 (firme, institucional), D40 (extra firme, industrial/médico). Colores: BL, Rosa, Gris, Gris Plata, Morada, Verde, Guayaba, Azul, Fucsia. Tipos: Convencional o Especial.
-
-ESPONJAS: línea institucional para hoteles, clínicas, empresas (ej: Interoffice S.A.S).
-
-Responde en español profesional y cálido. Redacta mensajes de WhatsApp y correos listos para copiar cuando se soliciten.`;
-
-async function enviarIA() {
-  const inp = document.getElementById('cinp');
-  const msg = inp.value.trim(); if (!msg) return;
-  inp.value = '';
-  addMsgIA(msg, 'me');
-  const typ = addTypIA();
-  try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:aiCtx,messages:[{role:'user',content:msg}]})
-    });
-    const d = await r.json();
-    typ.remove();
-    addMsgIA((d.content?.[0]?.text)||'Sin respuesta.', 'ai');
-  } catch(e) { typ.remove(); addMsgIA('Verifica tu conexión.', 'ai'); }
-}
-function qIA(q) { document.getElementById('cinp').value = q; enviarIA(); }
-function addMsgIA(txt, role) {
-  const d = document.createElement('div');
-  const isAI = role === 'ai';
-  d.style.cssText = `max-width:82%;padding:12px 15px;border-radius:${isAI?'4px 14px 14px 14px':'14px 14px 4px 14px'};font-size:13px;line-height:1.65;${isAI?'background:var(--card2);border:1px solid var(--border2);align-self:flex-start':'background:linear-gradient(135deg,var(--o),var(--o2));color:#fff;align-self:flex-end'}`;
-  if (isAI) d.innerHTML = `<div style="font-size:9px;font-weight:700;color:var(--o);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em">✨ Asistente Litoral</div>${txt.replace(/\n/g,'<br>')}`;
-  else d.textContent = txt;
-  const w = document.getElementById('chat-msgs'); w.appendChild(d); w.scrollTop = w.scrollHeight; return d;
-}
-function addTypIA() {
-  const d = document.createElement('div');
-  d.style.cssText = 'max-width:82%;padding:12px 15px;border-radius:4px 14px 14px 14px;font-size:13px;background:var(--card2);border:1px solid var(--border2)';
-  d.innerHTML = `<div style="font-size:9px;font-weight:700;color:var(--o);margin-bottom:5px">✨ Asistente Litoral</div><div style="display:flex;gap:4px">${'<span style="width:6px;height:6px;border-radius:50%;background:var(--text2);animation:bounce 1.2s infinite"></span>'.repeat(3)}</div>`;
-  const style = document.createElement('style'); style.textContent = '@keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-5px);opacity:1}}'; document.head.appendChild(style);
-  const w = document.getElementById('chat-msgs'); w.appendChild(d); w.scrollTop = w.scrollHeight; return d;
-}
-
-// ─── MODALES ───
-function abrirModal(id) { document.getElementById(id).classList.add('open'); }
-function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
-document.querySelectorAll('.mo').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
-
-// ─── TOAST ───
-function toast(msg) {
-  const t = document.getElementById('toast');
-  document.getElementById('t-txt').textContent = msg;
-  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-// ─── INIT ───
-cargarTablaClientes();
-cargarSeguimientos();
 </script>
 </body>
 </html>
